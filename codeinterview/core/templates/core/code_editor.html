@@ -1,0 +1,35 @@
+{% extends 'core/base.html' %}
+{% block content %}
+<h2>Редактор сессии {{ session.code }}</h2>
+
+<link rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/python/python.min.js"></script>
+
+<textarea id="code-area" style="width:100%; height:400px;"></textarea>
+
+<script>
+  const editor = CodeMirror.fromTextArea(
+    document.getElementById('code-area'),
+    { lineNumbers: true, mode: "python" }
+  );
+
+  const ws_scheme = window.location.protocol === "https:" ? "wss" : "ws";
+  const ws_path = `${ws_scheme}://${window.location.host}/ws/session/{{ session.code }}/`;
+  const socket = new WebSocket(ws_path);
+
+  socket.onmessage = e => {
+    
+  };
+
+  ['change','focus','blur','copy','paste'].forEach(event => {
+    editor.on(event, (cm, ev) => {
+      socket.send(JSON.stringify({
+        event: event,
+        content: event === 'change' ? cm.getValue() : ''
+      }));
+    });
+  });
+</script>
+{% endblock %}
