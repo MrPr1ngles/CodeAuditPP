@@ -1,0 +1,224 @@
+{% extends 'core/base.html' %}
+{% block content %}
+<style>
+:root {
+  --primary: #007aff;
+  --bg:    #f8faff;
+  --border:#a0cfff;
+  --light: #e6f0ff;
+}
+body { background: var(--bg); }
+#controls { margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; }
+#main { display:flex; height:calc(100vh - 100px); border:1px solid var(--border); background:white; }
+#editor-pane { width:75%; position:relative; }
+.CodeMirror { height:100% !important; font-size:14px; }
+#side { width:25%; display:flex; flex-direction:column; border-left:1px solid var(--border); background:var(--light); }
+#participants { height:20%; overflow-y:auto; border-bottom:1px solid var(--border); padding:10px; }
+#participants ul { list-style:none; padding:0; margin:0; }
+#participants li { margin:4px 0; font-weight:500; }
+#logs { height:80%; overflow-y:auto; padding:10px; }
+#logs table { width:100%; border-collapse:collapse; background:white; }
+#logs th, #logs td { border:1px solid #ccc; padding:6px; font-size:x-small; text-align:left; }
+.cursor-marker { position:absolute; pointer-events:none; border-left:2px solid; z-index:5; }
+.highlight-copy  { background: rgba(255,255,0,0.4); }
+.highlight-paste { background: rgba(0,255,0,0.3); }
+.log-event { cursor: pointer; }
+</style>
+
+<div id="controls">
+  <div>
+    <label><strong>Язык:</strong>
+      <select id="language-selector">
+        <option selected>Python</option>
+        <option>JavaScript</option>
+        <option>C++</option>
+      </select>
+    </label>
+  </div>
+  <a href="{% url 'logout' %}" style="color:var(--primary);font-weight:bold;">Выйти</a>
+</div>
+
+<div id="main">
+  <div id="editor-pane">
+    <textarea id="code-area">{{ session.code_content }}</textarea>
+  </div>
+  <div id="side">
+    <div id="participants">
+      <h4>Участники</h4>
+      <ul id="participants-list"></ul>
+    </div>
+    <div id="logs">
+      <h4>Логи</h4>
+      <table>
+        <thead><tr><th>Время</th><th>Пользователь</th><th>Действие</th></tr></thead>
+        <tbody id="logs-body">
+          {% for log in initial_logs %}
+          <tr>
+            <td>{{ log.time }}</td>
+            <td>{{ log.user }}</td>
+            <td class="log-event"
+                {% if log.range %}
+                  data-from-line="{{ log.range.from.line }}"
+                  data-from-ch="{{ log.range.from.ch }}"
+                  data-to-line="{{ log.range.to.line }}"
+                  data-to-ch="{{ log.range.to.ch }}"
+                {% endif %}
+            >{{ log.event }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/python/python.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/javascript/javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/clike/clike.min.js"></script>
+
+<script>
+// Django-переменные
+const currentUser = "{{ user.username }}";
+const currentRole = "{{ user.role }}";
+const participants = JSON.parse('{{ participants_json|escapejs }}');
+const userColor = "#007AFF";
+const userCursors = {};
+const hoverMarks = [];
+
+// Инициализация редактора
+const editor = CodeMirror.fromTextArea(
+  document.getElementById('code-area'),
+  { lineNumbers: true, mode: 'python' }
+);
+
+// Переключение языка
+document.getElementById('language-selector').onchange = e => {
+  let mode = 'python';
+  if (e.target.value === 'JavaScript') mode = 'javascript';
+  if (e.target.value === 'C++') mode = 'text/x-c++src';
+  editor.setOption('mode', mode);
+};
+
+// Подключение к WebSocket
+const ws = new WebSocket(
+  `${location.protocol==='https:'?'wss':'ws'}://${location.host}/ws/session/{{ session.code }}/`
+);
+
+// Отрисовка участников
+function renderParticipants() {
+  const ul = document.getElementById('participants-list');
+  ul.innerHTML = '';
+  participants.forEach(p => {
+    const li = document.createElement('li');
+    li.textContent = (p.role==='examiner'?'🧑‍💼 ':'👨‍🎓 ') + p.user;
+    ul.appendChild(li);
+  });
+}
+renderParticipants();
+
+// Функция добавления лога
+function addLog(time, user, event, range) {
+  const tr = document.createElement('tr');
+  const tdTime = document.createElement('td'); tdTime.textContent = time;
+  const tdUser = document.createElement('td'); tdUser.textContent = user;
+  const tdEvent = document.createElement('td');
+  tdEvent.textContent = event;
+  tdEvent.classList.add('log-event');
+  if (range) {
+    tdEvent.dataset.fromLine = range.from.line;
+    tdEvent.dataset.fromCh   = range.from.ch;
+    tdEvent.dataset.toLine   = range.to.line;
+    tdEvent.dataset.toCh     = range.to.ch;
+  }
+  tr.append(tdTime, tdUser, tdEvent);
+  document.getElementById('logs-body').appendChild(tr);
+}
+
+// Обработчики hover через делегирование
+const logsBody = document.getElementById('logs-body');
+function clearHoverMarks() {
+  hoverMarks.forEach(m => m.clear());
+  hoverMarks.length = 0;
+}
+logsBody.addEventListener('mouseover', e => {
+  const td = e.target.closest('td.log-event');
+  if (!td || !td.dataset.fromLine) return;
+  clearHoverMarks();
+  let fromPos = { line: +td.dataset.fromLine, ch: +td.dataset.fromCh };
+  let toPos   = { line: +td.dataset.toLine,   ch: +td.dataset.toCh   };
+  // корректируем порядок
+  if (fromPos.line > toPos.line || (fromPos.line === toPos.line && fromPos.ch > toPos.ch)) {
+    [fromPos, toPos] = [toPos, fromPos];
+  }
+  const cls = td.textContent.trim() === 'скопировал' ? 'highlight-copy' : 'highlight-paste';
+  const mark = editor.markText(fromPos, toPos, { className: cls });
+  hoverMarks.push(mark);
+});
+logsBody.addEventListener('mouseout', e => {
+  const td = e.target.closest('td.log-event');
+  if (!td) return;
+  clearHoverMarks();
+});
+
+// Обработка сообщений WebSocket
+ws.onmessage = e => {
+  const d = JSON.parse(e.data);
+  if (d.event === 'init') {
+    editor.setValue(d.content);
+    return;
+  }
+  if (d.event === 'join') {
+    participants.push({ user: d.user, role: d.role });
+    renderParticipants();
+    return;
+  }
+  if (d.event === 'leave') {
+    const idx = participants.findIndex(p => p.user === d.user);
+    if (idx >= 0) participants.splice(idx, 1);
+    renderParticipants();
+    return;
+  }
+  if (d.event === 'change' && d.user !== currentUser) {
+    const s = editor.getScrollInfo();
+    editor.setValue(d.content);
+    editor.scrollTo(s.left, s.top);
+    return;
+  }
+  if (d.event === 'cursor' && d.user !== currentUser) {
+    if (userCursors[d.user]) userCursors[d.user].clear();
+    const coords = editor.charCoords(d.cursor, 'local');
+    const el = document.createElement('div');
+    el.className = 'cursor-marker';
+    el.style.left = coords.left + 'px';
+    el.style.top  = coords.top  + 'px';
+    el.style.height = (coords.bottom - coords.top) + 'px';
+    el.style.borderColor = d.color + '80';
+    document.getElementById('editor-pane').appendChild(el);
+    userCursors[d.user] = { clear: () => el.remove() };
+    return;
+  }
+  if (['copy','paste','blur'].includes(d.event)) {
+    const time = d.timestamp.slice(11,16);
+    const ev = d.event === 'copy' ? 'скопировал' : d.event === 'paste' ? 'вставил' : 'потерял фокус';
+    addLog(time, d.user, ev, d.range || null);
+  }
+};
+
+// Отправка событий кандидата
+editor.on('change', cm => ws.send(JSON.stringify({ event: 'change', content: cm.getValue(), user: currentUser, role: currentRole, color: userColor, cursor: editor.getCursor() })));
+editor.on('cursorActivity', () => ws.send(JSON.stringify({ event: 'cursor', user: currentUser, role: currentRole, color: userColor, cursor: editor.getCursor() })));
+editor.getWrapperElement().addEventListener('copy', () => {
+  const sel = editor.listSelections()[0];
+  ws.send(JSON.stringify({ event: 'copy', user: currentUser, role: currentRole, color: userColor, cursor: editor.getCursor(), range: { from: sel.anchor, to: sel.head } }));
+});
+editor.getWrapperElement().addEventListener('paste', () => {
+  const sel = editor.listSelections()[0];
+  ws.send(JSON.stringify({ event: 'paste', user: currentUser, role: currentRole, color: userColor, cursor: editor.getCursor(), range: { from: sel.anchor, to: sel.head } }));
+});
+window.addEventListener('blur', () => ws.send(JSON.stringify({ event: 'blur', user: currentUser, role: currentRole, color: userColor, cursor: editor.getCursor() })));
+ws.onopen = () => ws.send(JSON.stringify({ event: 'join', user: currentUser, role: currentRole, color: userColor }));
+window.addEventListener('beforeunload', () => ws.send(JSON.stringify({ event: 'leave', user: currentUser, role: currentRole, color: userColor })));
+</script>
+{% endblock %}

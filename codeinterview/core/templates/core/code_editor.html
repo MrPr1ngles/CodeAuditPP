@@ -1,35 +1,141 @@
+<!-- core/templates/core/code_editor.html -->
 {% extends 'core/base.html' %}
 {% block content %}
-<h2>Редактор сессии {{ session.code }}</h2>
-
-<link rel="stylesheet"
-  href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+<style>
+#controls { margin-bottom: 10px; }
+#editor { height: calc(100vh - 100px); border: 1px solid #a0cfff; }
+.CodeMirror { height: 100% !important; }
+</style>
+<div id="controls">
+  <select id="language-selector">
+    <option{% if session.code_content %} selected{% endif %}>Python</option>
+    <option>JavaScript</option>
+    <option>C++</option>
+  </select>
+  <a href="{% url 'logout' %}" style="float:right;">Выйти</a>
+</div>
+<div id="editor">
+  <textarea id="code-area">{{ session.code_content }}</textarea>
+</div>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/python/python.min.js"></script>
-
-<textarea id="code-area" style="width:100%; height:400px;"></textarea>
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/javascript/javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/clike/clike.min.js"></script>
 <script>
-  const editor = CodeMirror.fromTextArea(
-    document.getElementById('code-area'),
-    { lineNumbers: true, mode: "python" }
-  );
+const currentUser = "{{ user.username }}";
+const userColor   = "#007AFF";
 
-  const ws_scheme = window.location.protocol === "https:" ? "wss" : "ws";
-  const ws_path = `${ws_scheme}://${window.location.host}/ws/session/{{ session.code }}/`;
-  const socket = new WebSocket(ws_path);
+// инициализация редактора
+const editor = CodeMirror.fromTextArea(
+  document.getElementById('code-area'),
+  { lineNumbers: true, mode: 'python' }
+);
 
-  socket.onmessage = e => {
-    
-  };
+// переключение языка
+document.getElementById('language-selector').onchange = e => {
+  let m = 'python';
+  if (e.target.value === 'JavaScript') m = 'javascript';
+  if (e.target.value === 'C++') m = 'text/x-c++src';
+  editor.setOption('mode', m);
+};
 
-  ['change','focus','blur','copy','paste'].forEach(event => {
-    editor.on(event, (cm, ev) => {
-      socket.send(JSON.stringify({
-        event: event,
-        content: event === 'change' ? cm.getValue() : ''
-      }));
-    });
-  });
+// подключение к WebSocket
+const ws = new WebSocket(
+  `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws/session/{{ session.code }}/`
+);
+
+// обработка входящих сообщений (код инициализации и изменений)
+ws.onmessage = e => {
+  const d = JSON.parse(e.data);
+  if (d.event === 'init') {
+    editor.setValue(d.content);
+  }
+  if (d.event === 'change' && d.user !== currentUser) {
+    const s = editor.getScrollInfo();
+    editor.setValue(d.content);
+    editor.scrollTo(s.left, s.top);
+  }
+};
+
+// отправка изменения кода
+editor.on('change', cm => {
+  ws.send(JSON.stringify({
+    event: 'change',
+    content: cm.getValue(),
+    user: currentUser,
+    role: "{{ user.role }}",
+    color: userColor,
+    cursor: editor.getCursor()
+  }));
+});
+
+// отправка позиции курсора (опционально)
+editor.on('cursorActivity', () => {
+  ws.send(JSON.stringify({
+    event: 'cursor',
+    user: currentUser,
+    role: "{{ user.role }}",
+    color: userColor,
+    cursor: editor.getCursor()
+  }));
+});
+
+// **отправка события копирования**
+editor.getWrapperElement().addEventListener('copy', () => {
+  const sel = editor.listSelections()[0];
+  ws.send(JSON.stringify({
+    event: 'copy',
+    user: currentUser,
+    role: "{{ user.role }}",
+    color: userColor,
+    cursor: editor.getCursor(),
+    range: { from: sel.anchor, to: sel.head }
+  }));
+});
+
+// **отправка события вставки**
+editor.getWrapperElement().addEventListener('paste', () => {
+  const sel = editor.listSelections()[0];
+  ws.send(JSON.stringify({
+    event: 'paste',
+    user: currentUser,
+    role: "{{ user.role }}",
+    color: userColor,
+    cursor: editor.getCursor(),
+    range: { from: sel.anchor, to: sel.head }
+  }));
+});
+
+// **отправка события потери фокуса окна**
+window.addEventListener('blur', () => {
+  ws.send(JSON.stringify({
+    event: 'blur',
+    user: currentUser,
+    role: "{{ user.role }}",
+    color: userColor,
+    cursor: editor.getCursor()
+  }));
+});
+
+// при открытии соединения объявляем о присоединении
+ws.onopen = () => {
+  ws.send(JSON.stringify({
+    event: 'join',
+    user: currentUser,
+    role: "{{ user.role }}",
+    color: userColor
+  }));
+};
+
+// при закрытии вкладки — выход
+window.addEventListener('beforeunload', () => {
+  ws.send(JSON.stringify({
+    event: 'leave',
+    user: currentUser,
+    role: "{{ user.role }}",
+    color: userColor
+  }));
+});
 </script>
 {% endblock %}

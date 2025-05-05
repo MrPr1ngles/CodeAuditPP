@@ -6,10 +6,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'ВАШ_SECRET_KEY_ЗДЕСЬ'
 DEBUG = True
 ALLOWED_HOSTS = []
-LOGIN_URL = '/login/'
 
 INSTALLED_APPS = [
-    'daphne',
     'channels',
     'django.contrib.admin',
     'django.contrib.auth',
@@ -35,7 +33,7 @@ ROOT_URLCONF = 'CodeInterview.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],              # шаблоны сюда класть будешь
+        'DIRS': [],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -51,7 +49,6 @@ TEMPLATES = [
 WSGI_APPLICATION = 'CodeInterview.wsgi.application'
 ASGI_APPLICATION = 'CodeInterview.asgi.application'
 
-# PostgreSQL настравивать тут будешь
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
@@ -80,12 +77,13 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
-# не не не ...
+# Для локальной разработки используем InMemoryChannelLayer,
+# чтобы не требовать запущенного Redis-сервера.
 CHANNEL_LAYERS = {
     'default': {
-        'BACKEND': 'channels_redis.core.RedisChannelLayer',
-        'CONFIG': {
-            'hosts': [('127.0.0.1', 6379)],
-        },
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
     },
 }
+
+# Чтобы @login_required редиректил на /login/ вместо /accounts/login/
+LOGIN_URL = '/login/'

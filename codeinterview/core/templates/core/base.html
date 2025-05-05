@@ -1,27 +1,43 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="utf-8">
-  <title>CodeInterview</title>
+    <meta charset="UTF-8">
+    <title>CodeInterview</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 2rem;
+        }
+        nav {
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #ccc;
+        }
+        nav a {
+            margin-right: 1rem;
+        }
+    </style>
 </head>
 <body>
-  <nav>
+
+<nav>
     {% if user.is_authenticated %}
-      Привет, {{ user.username }} ({{ user.get_role_display }})
-      {% if user.role == 'examiner' %}
-        | <a href="{% url 'create_session' %}">Создать сессию</a>
-        | <a href="{% url 'sessions_list' %}">Мои сессии</a>
-      {% endif %}
-      {% if user.role == 'candidate' %}
-        | <a href="{% url 'join_session' %}">Присоединиться к сессии</a>
-      {% endif %}
-      | <a href="{% url 'logout' %}">Выйти</a>
+        Привет, {{ user.username }} ({{ user.get_role_display }}) |
+        {% if user.role == 'examiner' %}
+            <a href="{% url 'create_session' %}">Создать сессию</a>
+            <a href="{% url 'sessions_list' %}">Мои сессии</a>
+        {% elif user.role == 'candidate' %}
+            <a href="{% url 'join_session' %}">Присоединиться</a>
+        {% endif %}
+        <a href="{% url 'logout' %}">Выйти</a>
     {% else %}
-      <a href="{% url 'login' %}">Войти</a> |
-      <a href="{% url 'register' %}">Регистрация</a>
+        <a href="{% url 'login' %}">Вход</a>
+        <a href="{% url 'register' %}">Регистрация</a>
     {% endif %}
-  </nav>
-  <hr>
-  {% block content %}{% endblock %}
+</nav>
+
+{% block content %}
+{% endblock %}
+
 </body>
 </html>
