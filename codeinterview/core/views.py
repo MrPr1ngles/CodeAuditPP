@@ -166,7 +166,7 @@ def examiner_editor_view(request, code):
         elif log.event_type == 'paste':
             event_txt = 'вставил'
             rng = json.loads(log.content or '{}')
-        else:  # blur
+        else:  
             event_txt = 'потерял фокус'
             rng = None
 
