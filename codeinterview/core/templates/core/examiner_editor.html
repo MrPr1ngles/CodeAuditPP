@@ -97,7 +97,6 @@ const editor = CodeMirror.fromTextArea(
   document.getElementById('code-area'), { lineNumbers: true, mode: 'python' }
 );
 
-// Language selector
 document.getElementById('language-selector').onchange = e => {
   let mode = 'python';
   if (e.target.value === 'JavaScript') mode = 'javascript';
@@ -118,7 +117,6 @@ function renderParticipants(){
 }
 renderParticipants();
 
-// Tooltip handling
 let tooltip;
 function showTooltip(evt, from, to) {
   if (tooltip) tooltip.remove();
@@ -135,7 +133,6 @@ function showTooltip(evt, from, to) {
 }
 function hideTooltip() { if (tooltip) tooltip.remove(); }
 
-// Attach hover to log rows
 document.querySelectorAll('#logs-body tr').forEach(tr => {
   const fromLine = tr.dataset.fromLine;
   if (!fromLine) return;

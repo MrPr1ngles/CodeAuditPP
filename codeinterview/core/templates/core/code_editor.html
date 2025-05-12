@@ -1,4 +1,3 @@
-<!-- core/templates/core/code_editor.html -->
 {% extends 'core/base.html' %}
 {% block content %}
 <style>
@@ -70,7 +69,7 @@ editor.on('change', cm => {
   }));
 });
 
-// отправка позиции курсора (опционально)
+// отправка позиции курсора 
 editor.on('cursorActivity', () => {
   ws.send(JSON.stringify({
     event: 'cursor',
@@ -81,7 +80,7 @@ editor.on('cursorActivity', () => {
   }));
 });
 
-// **отправка события копирования**
+// отправка события копирования
 editor.getWrapperElement().addEventListener('copy', () => {
   const sel = editor.listSelections()[0];
   ws.send(JSON.stringify({
@@ -94,7 +93,7 @@ editor.getWrapperElement().addEventListener('copy', () => {
   }));
 });
 
-// **отправка события вставки**
+// отправка события вставки
 editor.getWrapperElement().addEventListener('paste', () => {
   const sel = editor.listSelections()[0];
   ws.send(JSON.stringify({
@@ -107,7 +106,7 @@ editor.getWrapperElement().addEventListener('paste', () => {
   }));
 });
 
-// **отправка события потери фокуса окна**
+// отправка события потери фокуса окна
 window.addEventListener('blur', () => {
   ws.send(JSON.stringify({
     event: 'blur',
