@@ -18,13 +18,11 @@ class SessionConsumer(WebsocketConsumer):
         async_to_sync(self.channel_layer.group_add)(self.group_name, self.channel_name)
         self.accept()
 
-        # отправка текущего кода
         self.send(text_data=json.dumps({
             'event': 'init',
             'content': self.session.code_content or '',
         }))
 
-        # лог и рассылка join
         ActionLog.objects.create(session=self.session, user=self.user, event_type='join', content='')
         join_payload = {
             'event': 'join',
@@ -39,10 +37,8 @@ class SessionConsumer(WebsocketConsumer):
         )
 
     def disconnect(self, close_code):
-        # удаление из группы
         async_to_sync(self.channel_layer.group_discard)(self.group_name, self.channel_name)
 
-        # лог и рассылка leave
         ActionLog.objects.create(session=self.session, user=self.user, event_type='leave', content='')
         leave_payload = {
             'event': 'leave',
@@ -71,14 +67,12 @@ class SessionConsumer(WebsocketConsumer):
         }
 
         if event == 'change':
-            # сохраняем и рассылаем новый код
             content = data.get('content', '')
             self.session.code_content = content
             self.session.save()
             payload['content'] = content
 
         elif event in ('copy', 'paste', 'blur'):
-            # логируем и рассылаем только событие кандидата
             if self.user.role == 'candidate':
                 if event in ('copy', 'paste'):
                     ActionLog.objects.create(
@@ -96,10 +90,9 @@ class SessionConsumer(WebsocketConsumer):
                         content=''
                     )
             else:
-                return  # экзаменаторские copy/paste/blur игнорируем
+                return  
 
-        # курсор передаём всем, без логирования
-        # события join/leave не обрабатываются здесь
+
 
         async_to_sync(self.channel_layer.group_send)(
             self.group_name,
