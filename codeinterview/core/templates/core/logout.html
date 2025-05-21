@@ -1,6 +1,7 @@
 {% extends 'core/base.html' %}
-
 {% block content %}
-  <h2>Вы вышли из аккаунта</h2>
-  <p><a href="{% url 'login' %}">Войти снова</a></p>
+<div class="form-container">
+  <h2>Вы успешно вышли</h2>
+  <a href="{% url 'login' %}" class="btn-primary">Войти снова</a>
+</div>
 {% endblock %}

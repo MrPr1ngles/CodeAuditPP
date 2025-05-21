@@ -1,8 +1,13 @@
 {% extends 'core/base.html' %}
 {% block content %}
-<h2>Присоединиться к сессии</h2>
-<form method="post">{% csrf_token %}
-  {{ form.as_p }}
-  <button type="submit">Войти</button>
-</form>
+<div class="form-container">
+  <h2>Присоединиться к сессии</h2>
+  <form method="post">
+    {% csrf_token %}
+    <div class="form-group">
+      {{ form.as_p }}
+    </div>
+    <button type="submit" class="btn-primary">Войти</button>
+  </form>
+</div>
 {% endblock %}

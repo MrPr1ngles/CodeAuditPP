@@ -1,20 +1,10 @@
 {% extends 'core/base.html' %}
+{% block title %}Сессия {{ session.code }}{% endblock %}
 {% block content %}
-<h2>Сессия {{ session.code }}</h2>
-<h3>Логи действий</h3>
-<table border="1" cellpadding="5">
-  <tr>
-    <th>Время</th><th>Пользователь</th><th>Событие</th><th>Содержимое кода</th>
-  </tr>
-  {% for log in logs %}
-  <tr>
-    <td>{{ log.timestamp }}</td>
-    <td>{{ log.user.username }}</td>
-    <td>{{ log.get_event_type_display }}</td>
-    <td><pre>{{ log.content|default_if_none:"" }}</pre></td>
-  </tr>
-  {% empty %}
-  <tr><td colspan="4">Действий пока нет.</td></tr>
-  {% endfor %}
-</table>
+  <h2>Сессия {{ session.code }}</h2>
+  {% if user.role == 'examiner' %}
+    <a href="{% url 'examiner_editor' session.code %}" class="btn">Панель экзаменатора</a>
+  {% else %}
+    <a href="{% url 'code_editor' session.code %}" class="btn">Начать собеседование</a>
+  {% endif %}
 {% endblock %}

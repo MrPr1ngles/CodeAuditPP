@@ -1,140 +1,180 @@
 {% extends 'core/base.html' %}
 {% block content %}
-<style>
-#controls { margin-bottom: 10px; }
-#editor { height: calc(100vh - 100px); border: 1px solid #a0cfff; }
-.CodeMirror { height: 100% !important; }
-</style>
+
+{% block styles %}
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css ">
+  <style>
+    #controls {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+
+    #language-selector {
+      padding: 0.5rem 1rem;
+      background-color: var(--card-bg);
+      border: 1px solid var(--border-color);
+      color: var(--text-color);
+      border-radius: 4px;
+      font-size: 1rem;
+      transition: all 0.2s ease;
+    }
+
+    #language-selector:hover {
+      border-color: var(--accent-color);
+    }
+
+    #editor {
+      height: calc(100vh - 160px);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .CodeMirror {
+      height: 100% !important;
+      font-size: 15px;
+      line-height: 1.5;
+    }
+  </style>
+{% endblock %}
+
 <div id="controls">
   <select id="language-selector">
     <option{% if session.code_content %} selected{% endif %}>Python</option>
     <option>JavaScript</option>
     <option>C++</option>
   </select>
-  <a href="{% url 'logout' %}" style="float:right;">Выйти</a>
 </div>
+
 <div id="editor">
   <textarea id="code-area">{{ session.code_content }}</textarea>
 </div>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/python/python.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/javascript/javascript.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/clike/clike.min.js"></script>
-<script>
-const currentUser = "{{ user.username }}";
-const userColor   = "#007AFF";
 
-// инициализация редактора
-const editor = CodeMirror.fromTextArea(
-  document.getElementById('code-area'),
-  { lineNumbers: true, mode: 'python' }
-);
+{% block scripts %}
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js "></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/python/python.min.js "></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/javascript/javascript.min.js "></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/clike/clike.min.js "></script>
 
-// переключение языка
-document.getElementById('language-selector').onchange = e => {
-  let m = 'python';
-  if (e.target.value === 'JavaScript') m = 'javascript';
-  if (e.target.value === 'C++') m = 'text/x-c++src';
-  editor.setOption('mode', m);
-};
+  <script>
+    const currentUser = "{{ user.username }}";
+    const userColor   = "#007AFF";
 
-// подключение к WebSocket
-const ws = new WebSocket(
-  `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws/session/{{ session.code }}/`
-);
+    // Инициализация редактора
+    const editor = CodeMirror.fromTextArea(
+      document.getElementById('code-area'),
+      { lineNumbers: true, mode: 'python', theme: 'dracula' }
+    );
 
-// обработка входящих сообщений (код инициализации и изменений)
-ws.onmessage = e => {
-  const d = JSON.parse(e.data);
-  if (d.event === 'init') {
-    editor.setValue(d.content);
-  }
-  if (d.event === 'change' && d.user !== currentUser) {
-    const s = editor.getScrollInfo();
-    editor.setValue(d.content);
-    editor.scrollTo(s.left, s.top);
-  }
-};
+    // Переключение языка
+    document.getElementById('language-selector').onchange = e => {
+      let m = 'python';
+      if (e.target.value === 'JavaScript') m = 'javascript';
+      if (e.target.value === 'C++') m = 'text/x-c++src';
+      editor.setOption('mode', m);
+    };
 
-// отправка изменения кода
-editor.on('change', cm => {
-  ws.send(JSON.stringify({
-    event: 'change',
-    content: cm.getValue(),
-    user: currentUser,
-    role: "{{ user.role }}",
-    color: userColor,
-    cursor: editor.getCursor()
-  }));
-});
+    // Подключение к WebSocket
+    const ws = new WebSocket(
+      `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws/session/{{ session.code }}/`
+    );
 
-// отправка позиции курсора 
-editor.on('cursorActivity', () => {
-  ws.send(JSON.stringify({
-    event: 'cursor',
-    user: currentUser,
-    role: "{{ user.role }}",
-    color: userColor,
-    cursor: editor.getCursor()
-  }));
-});
+    // Обработка входящих сообщений (код инициализации и изменений)
+    ws.onmessage = e => {
+      const d = JSON.parse(e.data);
+      if (d.event === 'init') {
+        editor.setValue(d.content);
+      }
+      if (d.event === 'change' && d.user !== currentUser) {
+        const s = editor.getScrollInfo();
+        editor.setValue(d.content);
+        editor.scrollTo(s.left, s.top);
+      }
+    };
 
-// отправка события копирования
-editor.getWrapperElement().addEventListener('copy', () => {
-  const sel = editor.listSelections()[0];
-  ws.send(JSON.stringify({
-    event: 'copy',
-    user: currentUser,
-    role: "{{ user.role }}",
-    color: userColor,
-    cursor: editor.getCursor(),
-    range: { from: sel.anchor, to: sel.head }
-  }));
-});
+    // Отправка изменения кода
+    editor.on('change', cm => {
+      ws.send(JSON.stringify({
+        event: 'change',
+        content: cm.getValue(),
+        user: currentUser,
+        role: "{{ user.role }}",
+        color: userColor,
+        cursor: editor.getCursor()
+      }));
+    });
 
-// отправка события вставки
-editor.getWrapperElement().addEventListener('paste', () => {
-  const sel = editor.listSelections()[0];
-  ws.send(JSON.stringify({
-    event: 'paste',
-    user: currentUser,
-    role: "{{ user.role }}",
-    color: userColor,
-    cursor: editor.getCursor(),
-    range: { from: sel.anchor, to: sel.head }
-  }));
-});
+    // Отправка позиции курсора
+    editor.on('cursorActivity', () => {
+      ws.send(JSON.stringify({
+        event: 'cursor',
+        user: currentUser,
+        role: "{{ user.role }}",
+        color: userColor,
+        cursor: editor.getCursor()
+      }));
+    });
 
-// отправка события потери фокуса окна
-window.addEventListener('blur', () => {
-  ws.send(JSON.stringify({
-    event: 'blur',
-    user: currentUser,
-    role: "{{ user.role }}",
-    color: userColor,
-    cursor: editor.getCursor()
-  }));
-});
+    // Отправка события копирования
+    editor.getWrapperElement().addEventListener('copy', () => {
+      const sel = editor.listSelections()[0];
+      ws.send(JSON.stringify({
+        event: 'copy',
+        user: currentUser,
+        role: "{{ user.role }}",
+        color: userColor,
+        cursor: editor.getCursor(),
+        range: { from: sel.anchor, to: sel.head }
+      }));
+    });
 
-// при открытии соединения объявляем о присоединении
-ws.onopen = () => {
-  ws.send(JSON.stringify({
-    event: 'join',
-    user: currentUser,
-    role: "{{ user.role }}",
-    color: userColor
-  }));
-};
+    // Отправка события вставки
+    editor.getWrapperElement().addEventListener('paste', () => {
+      const sel = editor.listSelections()[0];
+      ws.send(JSON.stringify({
+        event: 'paste',
+        user: currentUser,
+        role: "{{ user.role }}",
+        color: userColor,
+        cursor: editor.getCursor(),
+        range: { from: sel.anchor, to: sel.head }
+      }));
+    });
 
-// при закрытии вкладки — выход
-window.addEventListener('beforeunload', () => {
-  ws.send(JSON.stringify({
-    event: 'leave',
-    user: currentUser,
-    role: "{{ user.role }}",
-    color: userColor
-  }));
-});
-</script>
+    // Отправка события потери фокуса окна
+    window.addEventListener('blur', () => {
+      ws.send(JSON.stringify({
+        event: 'blur',
+        user: currentUser,
+        role: "{{ user.role }}",
+        color: userColor,
+        cursor: editor.getCursor()
+      }));
+    });
+
+    // При открытии соединения объявляем о присоединении
+    ws.onopen = () => {
+      ws.send(JSON.stringify({
+        event: 'join',
+        user: currentUser,
+        role: "{{ user.role }}",
+        color: userColor
+      }));
+    };
+
+    // При закрытии вкладки — выход
+    window.addEventListener('beforeunload', () => {
+      ws.send(JSON.stringify({
+        event: 'leave',
+        user: currentUser,
+        role: "{{ user.role }}",
+        color: userColor
+      }));
+    });
+  </script>
+{% endblock %}
+
 {% endblock %}

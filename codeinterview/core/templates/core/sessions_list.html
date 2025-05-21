@@ -1,38 +1,49 @@
 {% extends 'core/base.html' %}
+{% block title %}Мои сессии{% endblock %}
 {% block content %}
-<h2>Мои сессии</h2>
-<a href="{% url 'create_session' %}" style="color:#007aff;font-weight:bold;">➕ Создать новую сессию</a>
-<table style="width:100%;border-collapse:collapse;margin-top:1em;">
-  <thead>
-    <tr>
-      <th style="border:1px solid #ccc;padding:8px;">Код</th>
-      <th style="border:1px solid #ccc;padding:8px;">Дата</th>
-      <th style="border:1px solid #ccc;padding:8px;">Участники</th>
-      <th style="border:1px solid #ccc;padding:8px;">Управление</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for item in session_data %}
-    <tr>
-      <td style="border:1px solid #ccc;padding:8px;"><code>{{ item.session.code }}</code></td>
-      <td style="border:1px solid #ccc;padding:8px;">{{ item.session.created_at }}</td>
-      <td style="border:1px solid #ccc;padding:8px;">{{ item.active }}</td>
-      <td style="border:1px solid #ccc;padding:8px;">
-        <a href="{% url 'session_detail' item.session.code %}">Открыть</a>
-        {% if item.active == 0 %}
-        |
-        <form action="{% url 'delete_session' item.session.code %}" method="post" style="display:inline;" onsubmit="return confirm('Удалить сессию {{ item.session.code }}?');">
-          {% csrf_token %}
-          <button type="submit" style="background:none;border:none;color:red;cursor:pointer;">🗑 Удалить</button>
-        </form>
-        {% endif %}
-      </td>
-    </tr>
-    {% empty %}
-    <tr>
-      <td colspan="4" style="border:1px solid #ccc;padding:8px;text-align:center;">Нет сессий.</td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
+<div class="form-container">
+  <h2>Мои сессии</h2>
+  <a href="{% url 'create_session' %}" class="btn-primary">Новая сессия</a>
+
+  {% if session_data %}
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Код</th>
+        <th>Дата создания</th>
+        <th>Активных участников</th>
+        <th>Действия</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in session_data %}
+      <tr>
+        <td><code>{{ item.session.code }}</code></td>
+        <td>{{ item.session.created_at|date:"d.m.Y H:i" }}</td>
+        <td>{{ item.active_count }}</td>
+        <td class="actions">
+          <a href="{% url 'session_detail' item.session.code %}" class="btn-primary btn-small">Открыть</a>
+
+          {% if item.active_count == 0 %}
+            <form action="{% url 'delete_session' item.session.code %}" method="post" style="display: inline;">
+              {% csrf_token %}
+              <button type="submit" class="btn-danger btn-small"
+                      onclick="return confirm('Вы уверены, что хотите удалить эту сессию?')">
+                  Удалить
+              </button>
+            </form>
+          {% else %}
+            <span class="disabled-text" title="Сессия активна — удаление запрещено">Удалить</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="4">Нет доступных сессий</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+    <p>Нет доступных сессий</p>
+  {% endif %}
+</div>
 {% endblock %}

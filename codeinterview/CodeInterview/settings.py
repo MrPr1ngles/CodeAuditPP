@@ -49,6 +49,19 @@ TEMPLATES = [
 WSGI_APPLICATION = 'CodeInterview.wsgi.application'
 ASGI_APPLICATION = 'CodeInterview.asgi.application'
 
+LOGGING = {
+    'version': 1,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'DEBUG',
+    },
+}
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',

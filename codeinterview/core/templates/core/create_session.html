@@ -1,7 +1,9 @@
 {% extends 'core/base.html' %}
 {% block content %}
-<h2>Создание сессии</h2>
-<form method="post">{% csrf_token %}
-  <button type="submit">Создать новую сессию</button>
-</form>
+<div class="form-container">
+  <h2>Создание сессии</h2>
+  <form method="post">{% csrf_token %}
+    <button type="submit" class="btn-primary">Создать новую сессию</button>
+  </form>
+</div>
 {% endblock %}

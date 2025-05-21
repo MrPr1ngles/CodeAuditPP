@@ -2,27 +2,239 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>CodeInterview</title>
+    <title>{% block title %}CodeInterview{% endblock %}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter :wght@400;500;600&display=swap" rel="stylesheet">
+
     <style>
+        :root {
+            --bg-color: #121212;
+            --text-color: #ffffff;
+            --accent-color: #1e88e5;
+            --nav-bg: #1e1e1e;
+            --card-bg: #2a2a2a;
+            --border-color: #333;
+        }
+
         body {
-            font-family: sans-serif;
-            margin: 2rem;
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
         }
+
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
         nav {
-            margin-bottom: 1rem;
-            padding-bottom: 0.5rem;
-            border-bottom: 1px solid #ccc;
+            background-color: var(--nav-bg);
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
         }
+
+        nav .user-info {
+            margin-right: auto;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #ccc;
+        }
+
         nav a {
-            margin-right: 1rem;
+            text-decoration: none;
+            margin-left: 0.75rem;
+            padding: 0.5rem 1rem;
+            background-color: var(--accent-color);
+            color: white;
+            border-radius: 4px;
+            font-weight: 500;
+            transition: background-color 0.2s ease;
+            white-space: nowrap;
+        }
+
+        nav a:hover {
+            background-color: #1565c0;
+        }
+
+        /* Формы */
+        .form-container {
+            background-color: var(--card-bg);
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            margin-top: 2rem;
+        }
+
+        .form-container h2 {
+            margin-top: 0;
+            font-size: 1.5rem;
+            color: var(--text-color);
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.2rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-color);
+            font-weight: 500;
+        }
+
+        .form-group input[type="text"],
+        .form-group input[type="email"],
+        .form-group input[type="password"] {
+            width: 100%;
+            padding: 0.6rem 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-size: 1rem;
+            transition: border-color 0.2s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+
+        /* Кнопки */
+        .btn-primary {
+            padding: 0.6rem 1.2rem;
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .btn-primary:hover {
+            background-color: #1565c0;
+        }
+
+        .btn-danger {
+            padding: 0.4rem 0.8rem;
+            background-color: #d32f2f;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .btn-danger:hover {
+            background-color: #b71c1c;
+        }
+
+        .btn-small {
+            padding: 0.3rem 0.6rem;
+            font-size: 0.85rem;
+        }
+
+        /* Таблицы */
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+            background-color: var(--card-bg);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .table thead {
+            background-color: var(--nav-bg);
+        }
+
+        .table th,
+        .table td {
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--border-color);
+            text-align: left;
+            color: var(--text-color);
+            font-size: 0.95rem;
+        }
+
+        .table tr:hover {
+            background-color: #2a2a2a80;
+        }
+
+        /* Всплывающие окна / tooltip */
+        .tooltip {
+            position: fixed;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            padding: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            font-family: monospace;
+            font-size: 12px;
+            pointer-events: none;
+            z-index: 1000;
+            color: var(--text-color);
+        }
+
+        .tooltip pre {
+            margin: 0;
+        }
+
+        .tooltip .line {
+            white-space: pre;
+        }
+
+        /* Дополнительно */
+        .form-footer {
+            margin-top: 1.5rem;
+            font-size: 0.95rem;
+            color: #ccc;
+        }
+
+        .form-footer a {
+            color: var(--accent-color);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .form-footer a:hover {
+            text-decoration: underline;
+        }
+
+        .inline-form {
+            display: inline-block;
+            margin: 0;
+        }
+
+        .disabled-text {
+            font-size: 0.85rem;
+            color: #888;
+            cursor: not-allowed;
         }
     </style>
+
+    {% block styles %}
+    {% endblock %}
 </head>
 <body>
 
 <nav>
+    <div class="user-info">
+        {% if user.is_authenticated %}
+            Привет, {{ user.username }} ({{ user.get_role_display }})
+        {% endif %}
+    </div>
     {% if user.is_authenticated %}
-        Привет, {{ user.username }} ({{ user.get_role_display }}) |
         {% if user.role == 'examiner' %}
             <a href="{% url 'create_session' %}">Создать сессию</a>
             <a href="{% url 'sessions_list' %}">Мои сессии</a>
@@ -36,7 +248,12 @@
     {% endif %}
 </nav>
 
-{% block content %}
+<div class="container">
+    {% block content %}
+    {% endblock %}
+</div>
+
+{% block scripts %}
 {% endblock %}
 
 </body>
