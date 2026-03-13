@@ -1,0 +1,40 @@
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: examdb
+      POSTGRES_USER: examuser
+      POSTGRES_PASSWORD: 1234
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432" # <-- ИЗМЕНЕНО: теперь внешний порт 5433, конфликта не будет
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  web:
+    build: .
+    command: sh -c "python manage.py migrate && daphne -b 0.0.0.0 -p 8000 CodeInterview.asgi:application"
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    environment:
+      - POSTGRES_HOST=db
+      - REDIS_HOST=redis
+      - DJANGO_SETTINGS_MODULE=CodeInterview.settings
+    depends_on:
+      - db
+      - redis
+
+volumes:
+  postgres_data:
+
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: 10.5.0.0/16

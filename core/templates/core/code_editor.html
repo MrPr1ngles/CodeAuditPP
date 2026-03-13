@@ -1,0 +1,131 @@
+{% extends 'core/base.html' %}
+{% block content %}
+
+{% block styles %}
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+  <style>
+    /* Светлая тема */
+    body { background-color: #f5f5f5; color: #333; }
+    #layout { display: flex; height: calc(100vh - 80px); gap: 15px; padding: 10px; }
+    
+    #task-pane { width: 30%; display: flex; flex-direction: column; }
+    #task-area { flex-grow: 1; resize: none; border: 1px solid #ccc; border-radius: 4px; padding: 10px; font-family: sans-serif; font-size: 14px; background-color: #fafafa; color: #333; }
+    
+    #editor-wrapper { width: 70%; display: flex; flex-direction: column; }
+    #controls { display: flex; justify-content: space-between; margin-bottom: 10px; }
+    .btn-primary { background-color: #1976d2; color: #fff; border: 1px solid #1565c0; border-radius: 4px; padding: 6px 12px; cursor: pointer; }
+    
+    /* CodeMirror Светлый */
+    .CodeMirror { height: 65% !important; border: 1px solid #ccc; border-radius: 4px; font-size: 15px; background-color: #fff; }
+    
+    /* Терминал Светлый */
+    #terminal { height: 35%; background: #ffffff; color: #333; font-family: monospace; padding: 10px; margin-top: 10px; border: 1px solid #ccc; border-radius: 4px; overflow-y: auto; white-space: pre-wrap; }
+    #typing-indicator { font-size: 0.9em; color: #666; margin-right: 15px; }
+  </style>
+{% endblock %}
+
+<div id="layout">
+  <div id="task-pane">
+    <h3 style="margin-top:0;">Задание:</h3>
+    <textarea id="task-area" readonly placeholder="Ожидание задания от экзаменатора..."></textarea>
+  </div>
+
+  <div id="editor-wrapper">
+    <div id="controls">
+      <div>
+        <select id="language-selector" class="btn-primary" style="background:#fff; color:#333; border:1px solid #ccc;">
+          <option{% if session.code_content %} selected{% endif %}>Python</option>
+          <option>JavaScript</option>
+          <option>C++</option>
+        </select>
+      </div>
+      <div style="display:flex; align-items:center;">
+        <span id="typing-indicator"></span>
+        <button id="run-btn" class="btn-primary" style="background-color: #2e7d32; border-color: #1b5e20;">▶ Выполнить</button>
+      </div>
+    </div>
+    <textarea id="code-area">{{ session.code_content }}</textarea>
+    <div id="terminal">Ожидание запуска программы...</div>
+  </div>
+</div>
+
+{% block scripts %}
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/python/python.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/javascript/javascript.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/clike/clike.min.js"></script>
+
+  <script>
+    const currentUser = "{{ user.username }}";
+    
+    // Подключаем CodeMirror со стандартной светлой темой (без указания theme)
+    const editor = CodeMirror.fromTextArea(
+      document.getElementById('code-area'),
+      { lineNumbers: true, mode: 'python' }
+    );
+
+    document.getElementById('language-selector').onchange = e => {
+      let m = 'python';
+      if (e.target.value === 'JavaScript') m = 'javascript';
+      if (e.target.value === 'C++') m = 'text/x-c++src';
+      editor.setOption('mode', m);
+    };
+
+    const ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws/session/{{ session.code }}/`);
+
+    ws.onmessage = e => {
+      const d = JSON.parse(e.data);
+      if (d.event === 'init') {
+        editor.setValue(d.content);
+        document.getElementById('task-area').value = d.task_content;
+      }
+      else if (d.event === 'task_update') {
+        document.getElementById('task-area').value = d.task_content;
+      }
+      else if (d.event === 'execution_result') {
+        document.getElementById('terminal').textContent = d.output;
+      }
+      else if (d.event === 'change' && d.user !== currentUser) {
+        const s = editor.getScrollInfo();
+        editor.setValue(d.content);
+        editor.scrollTo(s.left, s.top);
+      }
+      else if (d.event === 'typing' && d.user !== currentUser) {
+        document.getElementById('typing-indicator').textContent = d.is_typing ? `${d.user} печатает...` : '';
+      }
+    };
+
+    document.getElementById('run-btn').onclick = () => {
+      document.getElementById('terminal').textContent = "Выполнение...";
+      ws.send(JSON.stringify({
+        event: 'run_code',
+        code: editor.getValue(),
+        language: document.getElementById('language-selector').value
+      }));
+    };
+
+    let typingTimer;
+    editor.on('change', cm => {
+      ws.send(JSON.stringify({ event: 'change', content: cm.getValue(), user: currentUser }));
+      ws.send(JSON.stringify({ event: 'typing', is_typing: true, user: currentUser }));
+      clearTimeout(typingTimer);
+      typingTimer = setTimeout(() => {
+        ws.send(JSON.stringify({ event: 'typing', is_typing: false, user: currentUser }));
+      }, 1500);
+    });
+
+    editor.getWrapperElement().addEventListener('paste', e => {
+      e.preventDefault();
+      alert("Внимание! Вставка скопированного кода отключена правилами экзамена.");
+      ws.send(JSON.stringify({ event: 'paste_blocked', user: currentUser, role: "{{ user.role }}" }));
+    });
+
+    editor.getWrapperElement().addEventListener('copy', () => {
+      const sel = editor.listSelections()[0];
+      ws.send(JSON.stringify({ event: 'copy', user: currentUser, role: "{{ user.role }}", range: { from: sel.anchor, to: sel.head } }));
+    });
+
+    window.addEventListener('blur', () => ws.send(JSON.stringify({ event: 'blur', user: currentUser, role: "{{ user.role }}" })));
+  </script>
+{% endblock %}
+{% endblock %}

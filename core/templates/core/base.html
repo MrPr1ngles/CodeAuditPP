@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}CodeInterview{% endblock %}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            /* Светлая тема */
+            --bg-color: #f5f5f5;
+            --text-color: #333333;
+            --accent-color: #1976d2;
+            --nav-bg: #ffffff;
+            --card-bg: #ffffff;
+            --border-color: #cccccc;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        nav {
+            background-color: var(--nav-bg);
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05); /* Легкая тень для навбара */
+        }
+
+        nav .user-info {
+            margin-right: auto;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #555;
+        }
+
+        nav a {
+            text-decoration: none;
+            margin-left: 0.75rem;
+            padding: 0.5rem 1rem;
+            background-color: var(--accent-color);
+            color: white;
+            border-radius: 4px;
+            font-weight: 500;
+            transition: background-color 0.2s ease;
+            white-space: nowrap;
+        }
+
+        nav a:hover {
+            background-color: #1565c0;
+        }
+
+        /* Формы */
+        .form-container {
+            background-color: var(--card-bg);
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            margin-top: 2rem;
+        }
+
+        .form-container h2 {
+            margin-top: 0;
+            font-size: 1.5rem;
+            color: var(--text-color);
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.2rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-color);
+            font-weight: 500;
+        }
+
+        .form-group input[type="text"],
+        .form-group input[type="email"],
+        .form-group input[type="password"] {
+            width: 100%;
+            padding: 0.6rem 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background-color: #fafafa;
+            color: var(--text-color);
+            font-size: 1rem;
+            transition: border-color 0.2s ease, background-color 0.2s ease;
+            box-sizing: border-box; /* Чтобы padding не ломал ширину */
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            background-color: #ffffff;
+        }
+
+        /* Кнопки */
+        .btn-primary {
+            padding: 0.6rem 1.2rem;
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .btn-primary:hover {
+            background-color: #1565c0;
+        }
+
+        .btn-danger {
+            padding: 0.4rem 0.8rem;
+            background-color: #d32f2f;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .btn-danger:hover {
+            background-color: #b71c1c;
+        }
+
+        .btn-small {
+            padding: 0.3rem 0.6rem;
+            font-size: 0.85rem;
+        }
+
+        /* Таблицы */
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+            background-color: var(--card-bg);
+            border-radius: 6px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .table thead {
+            background-color: #f8f9fa; /* Светлый фон для заголовка таблицы */
+        }
+
+        .table th,
+        .table td {
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--border-color);
+            text-align: left;
+            color: var(--text-color);
+            font-size: 0.95rem;
+        }
+
+        .table tr:hover {
+            background-color: #f1f1f1;
+        }
+
+        /* Всплывающие окна / tooltip */
+        .tooltip {
+            position: fixed;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            padding: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            font-family: monospace;
+            font-size: 12px;
+            pointer-events: none;
+            z-index: 1000;
+            color: var(--text-color);
+            border-radius: 4px;
+        }
+
+        .tooltip pre {
+            margin: 0;
+        }
+
+        .tooltip .line {
+            white-space: pre;
+        }
+
+        /* Дополнительно */
+        .form-footer {
+            margin-top: 1.5rem;
+            font-size: 0.95rem;
+            color: #666;
+        }
+
+        .form-footer a {
+            color: var(--accent-color);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .form-footer a:hover {
+            text-decoration: underline;
+        }
+
+        .inline-form {
+            display: inline-block;
+            margin: 0;
+        }
+
+        .disabled-text {
+            font-size: 0.85rem;
+            color: #999;
+            cursor: not-allowed;
+        }
+    </style>
+
+    {% block styles %}
+    {% endblock %}
+</head>
+<body>
+
+<nav>
+    <div class="user-info">
+        {% if user.is_authenticated %}
+            Привет, {{ user.username }} ({{ user.get_role_display }})
+        {% endif %}
+    </div>
+    {% if user.is_authenticated %}
+        {% if user.role == 'examiner' %}
+            <a href="{% url 'create_session' %}">Создать сессию</a>
+            <a href="{% url 'sessions_list' %}">Мои сессии</a>
+        {% elif user.role == 'candidate' %}
+            <a href="{% url 'join_session' %}">Присоединиться</a>
+        {% endif %}
+        <a href="{% url 'logout' %}">Выйти</a>
+    {% else %}
+        <a href="{% url 'login' %}">Вход</a>
+        <a href="{% url 'register' %}">Регистрация</a>
+    {% endif %}
+</nav>
+
+<div class="container">
+    {% block content %}
+    {% endblock %}
+</div>
+
+{% block scripts %}
+{% endblock %}
+
+</body>
+</html>

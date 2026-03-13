@@ -1,0 +1,10 @@
+{% extends 'core/base.html' %}
+{% block title %}Сессия {{ session.code }}{% endblock %}
+{% block content %}
+  <h2>Сессия {{ session.code }}</h2>
+  {% if user.role == 'examiner' %}
+    <a href="{% url 'examiner_editor' session.code %}" class="btn">Панель экзаменатора</a>
+  {% else %}
+    <a href="{% url 'code_editor' session.code %}" class="btn">Начать собеседование</a>
+  {% endif %}
+{% endblock %}
