@@ -99,5 +99,4 @@ CHANNEL_LAYERS = {
     },
 }
 
-# Чтобы @login_required редиректил на /login/ вместо /accounts/login/
 LOGIN_URL = '/login/'
